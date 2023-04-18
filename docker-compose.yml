@@ -1,0 +1,159 @@
+---
+version: '3.9'
+
+networks:
+  clusterA:
+    driver: bridge
+  clusterB:
+    driver: bridge
+
+volumes:
+  zookeeperA-data:
+  kafkaA1-data:
+  kafkaA2-data:
+  zookeeperB-data:
+  kafkaB1-data:
+  kafkaB2-data:
+
+services:
+  zookeeperA:
+    image: docker.io/bitnami/zookeeper:3.7
+    restart: unless-stopped
+    networks:
+      - clusterA
+    volumes:
+      - zookeeperA-data:/bitnami
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+  kafkaA-1:
+    image: docker.io/bitnami/kafka:3
+    restart: unless-stopped
+    ports:
+      - "10001:10001"
+    volumes:
+      - kafkaA1-data:/bitnami
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeperA:2181
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=INTERNAL://:9092,EXTERNAL://:10001
+      - KAFKA_CFG_ADVERTISED_LISTENERS=INTERNAL://kafkaA-1:9092,EXTERNAL://localhost:10001
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zookeeperA
+    networks:
+      - clusterA
+  kafkaA-2:
+    image: docker.io/bitnami/kafka:3
+    restart: unless-stopped
+    ports:
+      - "10002:10002"
+    volumes:
+      - kafkaA2-data:/bitnami
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeperA:2181
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=INTERNAL://:9092,EXTERNAL://:10002
+      - KAFKA_CFG_ADVERTISED_LISTENERS=INTERNAL://kafkaA-2:9092,EXTERNAL://localhost:10002
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zookeeperA
+    networks:
+      - clusterA
+#  kafkaA-ui:
+#    image: obsidiandynamics/kafdrop
+#    restart: unless-stopped
+#    environment:
+#      - SERVER_SERVLET_CONTEXTPATH=/
+#      - JVM_OPTS=-Xms32M -Xmx64M
+#      - KAFKA_BROKERCONNECT=kafkaA-1:9092,kafkaA-2:9092
+#    depends_on:
+#      - kafkaA-1
+#      - kafkaA-2
+#    networks:
+#      - clusterA
+#    ports:
+#      - "9000:9000"
+  zookeeperB:
+    image: docker.io/bitnami/zookeeper:3.7
+    restart: unless-stopped
+    networks:
+      - clusterB
+    volumes:
+      - zookeeperB-data:/bitnami
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+  kafkaB-1:
+    image: docker.io/bitnami/kafka:3
+    restart: unless-stopped
+    ports:
+      - "10003:10003"
+    volumes:
+      - kafkaB1-data:/bitnami
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeperB:2181
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=INTERNAL://:9092,EXTERNAL://:10003
+      - KAFKA_CFG_ADVERTISED_LISTENERS=INTERNAL://kafkaB-1:9092,EXTERNAL://localhost:10003
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zookeeperB
+    networks:
+      - clusterB
+  kafkaB-2:
+    image: docker.io/bitnami/kafka:3
+    restart: unless-stopped
+    ports:
+      - "10004:10004"
+    volumes:
+      - kafkaB2-data:/bitnami
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeperB:2181
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=INTERNAL://:9092,EXTERNAL://:10004
+      - KAFKA_CFG_ADVERTISED_LISTENERS=INTERNAL://kafkaB-2:9092,EXTERNAL://localhost:10004
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zookeeperB
+    networks:
+      - clusterB
+#  kafkaB-ui:
+#    image: obsidiandynamics/kafdrop
+#    restart: unless-stopped
+#    environment:
+#      - SERVER_SERVLET_CONTEXTPATH=/
+#      - JVM_OPTS=-Xms32M -Xmx64M
+#      - KAFKA_BROKERCONNECT=kafkaB-1:9092,kafkaB-2:9092
+#    depends_on:
+#      - kafkaB-1
+#      - kafkaB-2
+#    networks:
+#      - clusterB
+#    ports:
+#      - "9000:9011"
+
+  relay:
+    build:
+      context: .
+    pull_policy: always
+    command:
+      - "--server.port=9001"
+      - "--kafka.clusterA.bootstrapAddress=kafkaA-1:9092,kafkaA-2:9092"
+      - "--kafka.clusterA.groupId=validator"
+      - "--kafka.clusterA.listen.topic=topic"
+      - "--kafka.clusterA.send.topic=sendA"
+      - "--kafka.clusterB.bootstrapAddress=kafkaB-1:9092,kafkaB-2:9092"
+      - "--kafka.clusterB.groupId=validator"
+      - "--kafka.clusterB.listen.topic=topic"
+      - "--kafka.clusterB.send.topic=sendB"
+    depends_on:
+      - kafkaA-1
+      - kafkaA-2
+      - kafkaB-1
+      - kafkaB-2
+    networks:
+      - clusterA
+      - clusterB
