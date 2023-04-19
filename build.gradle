@@ -16,10 +16,19 @@ configurations {
 }
 
 repositories {
+	maven {
+		url = uri("https://maven.pkg.github.com/RomanosTrechlis/kafka-relay")
+		credentials {
+			username = project.findProperty("user") ?: System.getenv("USERNAME")
+			password = project.findProperty("key") ?: System.getenv("TOKEN")
+		}
+	}
 	mavenCentral()
 }
 
 dependencies {
+	implementation "io.github.romanostrechlis:kafka-relay:0.1.1@jar"
+
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.kafka:spring-kafka'
 	compileOnly 'org.projectlombok:lombok'

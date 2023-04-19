@@ -1,39 +1,31 @@
-# kafka-relay
+# kafka-relay-example
 
-**kafka-relay** is a spring-boot application that reads messages 
-from a kafka cluster and forwards it to another kafka cluster.
-
-```mermaid
-flowchart TD;
-kafka-relay(kafka-relay\n\nNetworks: clusterA, clusterB)
-clusterA[Apache Kafka Cluster A\n\nNetworks: clusterA]
-clusterB[Apache Kafka Cluster B\n\nNetworks: clusterB]
-
-kafka-relay -.-> |Consumes/Produces| clusterA
-kafka-relay -.-> |Consumes/Produces| clusterB
-```
-
-As the diagram suggests, the two Kafka clusters are isolated from each other.
-
-The reason for **kafka-relay** existence is that it provides a decoupling between 
-the main application and the integrations for third party applications.
-That way, the main application knows how to read messages from the kafka cluster A, as well as their format.
-The **kafka-relay** is responsible to read integration specific messages from cluster B, transform them in 
-the format of the main application and forward them to the cluster A.
+**kafka-relay-example** is a spring-boot application that reads messages 
+from a kafka cluster and forwards it to another kafka cluster using the 
+[kafka-relay](https://github.com/RomanosTrechlis/kafka-relay) package.
 
 ## Build
 
-Build **kafka-relay** using gradle.
+Build **kafka-relay-example** using gradle.
 
-![img.png](docs/img/gradle.png)
+Run the command `gradlew build -Puser <user> -Pkey <GITHUB_PAT>`.
 
-Or run the command `gradlew build`.
+For this application we create a custom kafka message transformer that implements the `ITransformKafkaMessage`.
+Additionally, we create a bean for this transformer.
+
+```java
+@Bean
+public ITransformKafkaMessage transformer() {
+    return new CustomKafkaMessageTransformer();
+}
+```
+
+And we also add the annotation `@ComponentScan("io.github.romanostrechlis.kafkarelay")` in order to load the beans
+define in the **kafka-relay** package.
 
 ## Deployment
 
-After building **kafka-relay** we are ready to deploy.
-
-By running `docker-compose up` a demo environment gets deployed.
+**kafka-relay-example** is deployed by running `docker-compose up --build`.
 
 ```mermaid
 flowchart TD;
@@ -56,12 +48,10 @@ subgraph ClusterB[Apache Kafka Cluster B: clusterB]
 end
 ```
 
-## Local demo
-
 Run the following command to produce a message to Cluster B.
 
 ```
- sh kafka-console-producer.sh --bootstrap-server localhost:10003,localhost:10004 --topic topic
+ sh kafka-console-producer.sh --bootstrap-server localhost:10003,localhost:10004 --topic topicB
 ```
 
 This creates a prompt to write the message:
@@ -87,6 +77,10 @@ We can also check the relay's logs.
 
 ![img.png](docs/img/relay-logs.png)
 
+In this Spring Boot application we implement a different transformer that adds a suffix to the message.
+
+![img.png](docs/img/kafdrop_suffix.png)
+
 ## Configuration
 
 The following properties must be filled in order for the application to run correctly.
@@ -103,19 +97,4 @@ kafka.clusterB.groupId=test
 ```
 
 Reference also to [docker-compose.yml](docker-compose.yml)
-
-## Transform
-
-The API exposes an interface `ITransformKafkaMessage` with two methods. 
-
-+ String transformToA(String messageFromB);
-+ String transformToB(String messageFromA);
-
-The `DefaultKafkaMessageTransformer` returns the message without any actual transformation.
-
-For a specific transformation, implement the `ITransformKafkaMessage` interface.
-
-## Help
-
-[Help.md](docs/HELP.md)
 

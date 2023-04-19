@@ -1,4 +1,4 @@
-package io.github.romanostrechlis.kafkarelay;
+package io.github.romanostrechlis.kafkarelayexample;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

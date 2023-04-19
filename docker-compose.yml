@@ -61,20 +61,20 @@ services:
       - zookeeperA
     networks:
       - clusterA
-#  kafkaA-ui:
-#    image: obsidiandynamics/kafdrop
-#    restart: unless-stopped
-#    environment:
-#      - SERVER_SERVLET_CONTEXTPATH=/
-#      - JVM_OPTS=-Xms32M -Xmx64M
-#      - KAFKA_BROKERCONNECT=kafkaA-1:9092,kafkaA-2:9092
-#    depends_on:
-#      - kafkaA-1
-#      - kafkaA-2
-#    networks:
-#      - clusterA
-#    ports:
-#      - "9000:9000"
+  kafkaA-ui:
+    image: obsidiandynamics/kafdrop
+    restart: unless-stopped
+    environment:
+      - SERVER_SERVLET_CONTEXTPATH=/
+      - JVM_OPTS=-Xms32M -Xmx64M
+      - KAFKA_BROKERCONNECT=kafkaA-1:9092,kafkaA-2:9092
+    depends_on:
+      - kafkaA-1
+      - kafkaA-2
+    networks:
+      - clusterA
+    ports:
+      - "9000:9000"
   zookeeperB:
     image: docker.io/bitnami/zookeeper:3.7
     restart: unless-stopped
@@ -133,7 +133,7 @@ services:
 #    networks:
 #      - clusterB
 #    ports:
-#      - "9000:9011"
+#      - "9000:9000"
 
   relay:
     build:
@@ -142,12 +142,12 @@ services:
     command:
       - "--server.port=9001"
       - "--kafka.clusterA.bootstrapAddress=kafkaA-1:9092,kafkaA-2:9092"
-      - "--kafka.clusterA.groupId=validator"
-      - "--kafka.clusterA.listen.topic=topic"
+      - "--kafka.clusterA.groupId=test_cluster_A"
+      - "--kafka.clusterA.listen.topic=topicA"
       - "--kafka.clusterA.send.topic=sendA"
       - "--kafka.clusterB.bootstrapAddress=kafkaB-1:9092,kafkaB-2:9092"
-      - "--kafka.clusterB.groupId=validator"
-      - "--kafka.clusterB.listen.topic=topic"
+      - "--kafka.clusterB.groupId=test_cluster_B"
+      - "--kafka.clusterB.listen.topic=topicB"
       - "--kafka.clusterB.send.topic=sendB"
     depends_on:
       - kafkaA-1
